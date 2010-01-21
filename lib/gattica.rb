@@ -64,6 +64,7 @@ module Gattica
     #   ga = Gattica.new({:token => '23ohda09hw...', :profile_id => 123456})
     
     def initialize(options={})
+      @debug = true
       @options = DEFAULT_OPTIONS.merge(options)
       @logger = @options[:logger]
       
@@ -155,10 +156,20 @@ module Gattica
     
     def get(args={})
       args = validate_and_clean(DEFAULT_ARGS.merge(args))
+      args[:offset] ||= 1
       query_string = build_query_string(args,@profile_id)
         @logger.debug(query_string) if @debug
       data = do_http_get("/analytics/feeds/data?#{query_string}")
-      return DataSet.new(Hpricot.XML(data))
+      dataset = DataSet.new(Hpricot.XML(data))
+      while (dataset.total_results > dataset.points.size)
+        puts args[:offset] if @debug
+        args[:offset] += 10000 
+        query_string = build_query_string(args,@profile_id)
+        data = do_http_get("/analytics/feeds/data?#{query_string}")
+        dataset.merge(Hpricot.XML(data))
+        puts dataset.points.size if @debug
+      end
+      dataset
     end
     
     
@@ -207,6 +218,9 @@ module Gattica
     # Creates a valid query string for GA
     def build_query_string(args,profile)
       output = "ids=ga:#{profile}&start-date=#{args[:start_date]}&end-date=#{args[:end_date]}"
+      unless args[:offset] == nil or args[:offset].to_i == 0
+        output += "&start-index=#{args[:offset]}"
+      end
       unless args[:dimensions].empty?
         output += '&dimensions=' + args[:dimensions].collect do |dimension|
           "ga:#{dimension}"
@@ -234,7 +248,7 @@ module Gattica
           end
         end.join(';')
       end
-      return output
+      return output + "&max-results=10000"
     end
     
     

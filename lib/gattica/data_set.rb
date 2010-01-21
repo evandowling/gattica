@@ -18,6 +18,13 @@ module Gattica
       @points = xml.search(:entry).collect { |entry| DataPoint.new(entry) }
     end
     
+    #merge the results with more xml
+    def merge(xml)
+      new_points = xml.search(:entry).collect { |entry| DataPoint.new(entry) }
+      @items_per_page += new_points.size
+      @points.concat(new_points)
+    end
+    
     
     # output important data to CSV, ignoring all the specific data about this dataset 
     # (total_results, start_date) and just output the data from the points
