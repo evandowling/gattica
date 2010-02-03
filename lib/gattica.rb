@@ -64,7 +64,6 @@ module Gattica
     #   ga = Gattica.new({:token => '23ohda09hw...', :profile_id => 123456})
     
     def initialize(options={})
-      @debug = true
       @options = DEFAULT_OPTIONS.merge(options)
       @logger = @options[:logger]
       
